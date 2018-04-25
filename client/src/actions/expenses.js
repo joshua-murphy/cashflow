@@ -1,8 +1,8 @@
 import { addMessage } from './gamelog'
 
-export const addExpense = (id, name, value) => {
+export const addExpense = (id, name, value, createMessage) => {
   return dispatch => {
     dispatch({type: "ADD_EXPENSE", id, name, value})
-    dispatch(addMessage(`Monthly expense added: ${name} for $${value}`))
+    createMessage && dispatch(addMessage(`Monthly expense added: ${name} for $${value} / month`))
   }
 }

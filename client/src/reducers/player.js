@@ -1,5 +1,7 @@
 const player = (state = {}, action) => {
   switch (action.type) {
+    case 'SET_PROFESSION':
+      return {...state, profession: action.profession}
     case 'BUY_CHARITY':
       return {...state, charity: { active: true, rollsRemaining: 3 }};
     case 'CHARITY_COUNTER':
@@ -7,8 +9,8 @@ const player = (state = {}, action) => {
       const newTotal = rolls + action.value
       const active = newTotal > 0 ? true : false
       return {...state, charity: { active, rollsRemaining: newTotal }};
-    case 'UPDATE_PAYCHECK':
-      return { ...state, paycheck: action.value }
+    case 'UPDATE_SALARY':
+      return { ...state, profession: { ...state.profession, salary: action.value } }
     default:
       return state;
   }

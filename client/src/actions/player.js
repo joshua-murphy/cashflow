@@ -1,13 +1,12 @@
-// import axios from 'axios';
-import { addMessage } from '../actions/gamelog';
-import { mathMoney } from '../actions/wallet';
+import { addMessage } from './gamelog';
+import { editIncome } from './incomes';
+import { mathMoney } from './wallet';
 
 export const buyCharity = (amount) => {
   return dispatch => {
-    dispatch({ type: 'BUY_CHARITY' });
     dispatch(mathMoney(-amount));
-    dispatch(addMessage('Charity bought, rolls remaining: 3'));
-    // dispatch({ type: 'SUBTRACT_MONEY' });
+    dispatch({ type: 'BUY_CHARITY' });
+    dispatch(addMessage(`Charity bought for $${amount}, rolls remaining: 3`));
   };
 };
 
@@ -18,9 +17,10 @@ export const charityCounter = (value, current) => {
   };
 };
 
-export const updatePaycheck = (value) => {
+export const updateSalary = (id, name, value) => {
   return dispatch => {
-    dispatch({ type: "UPDATE_PAYCHECK", value });
-    dispatch(addMessage(`Paycheck updated to: $${value}`));
-  }
-}
+    dispatch(editIncome(id, name, value, false));
+    dispatch({ type: "UPDATE_SALARY", value });
+    dispatch(addMessage(`Salary updated to: $${value}`));
+  };
+};

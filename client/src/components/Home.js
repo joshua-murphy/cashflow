@@ -1,32 +1,53 @@
 import React, { Component } from 'react';
+import axios from 'axios';
 import Die from './Die';
 import Gamelog from './Gamelog';
 import Stats from './Stats';
 import FormModal from './FormModal';
-import { buyCharity, charityCounter, updatePaycheck } from '../actions/player';
+import { humanize } from './functions';
+import { buyCharity, charityCounter, updateSalary } from '../actions/player';
 import { mathMoney } from '../actions/wallet';
 import { addExpense } from '../actions/expenses';
 import { addIncome } from '../actions/incomes';
+import { setProfession } from '../actions/profession';
+import { addMessage } from '../actions/gamelog';
 import { connect } from 'react-redux';
 import { Button, Container, Grid, Header, Input } from 'semantic-ui-react';
 
 class Home extends Component {
 
-  state = { dice: [], addMoney: "", spendMoney: "", incomeCount: 0, expenseCount: 0, totalIncomes: 0, totalExpenses: 0 }
+  state = { dice: [], paycheck: 0, moneyInput: "", incomeCount: 0, expenseCount: 0, totalIncomes: 0, totalExpenses: 0 }
+
+    componentDidMount() {
+      axios.get('/api/professions/random')
+        .then( res => this.professionInit(res.data.profession) )
+        .catch( err => this.props.dispatch(addMessage("FATAL ERROR: Could not contact database, profession was not loaded.")) )
+    }
 
   componentDidUpdate() {
     const { incomes, expenses } = this.props;  
-    const { totalIncomes, totalExpenses } = this.state;  
+    const { totalIncomes, totalExpenses, paycheck } = this.state;
     const tempTotalIncomes = incomes.length > 0 ? incomes.map( (income) => income.value ).reduce((sum, num) => sum + num) : 0
     const tempTotalExpenses = expenses.length > 0 ? expenses.map( (expense) => expense.value ).reduce((sum, num) => sum + num) : 0 
-    if(totalIncomes !== tempTotalIncomes || totalExpenses !== tempTotalExpenses)
-      this.setState({ totalIncomes: tempTotalIncomes, totalExpenses: tempTotalExpenses });
+    const tempPaycheck = totalIncomes - totalExpenses;
+    if(totalIncomes !== tempTotalIncomes || totalExpenses !== tempTotalExpenses || paycheck !== tempPaycheck)
+      this.setState({ paycheck: tempPaycheck, totalIncomes: tempTotalIncomes, totalExpenses: tempTotalExpenses });
+  }
+
+  professionInit = (profession) => {
+    const { dispatch } = this.props;
+    dispatch(setProfession(profession))
+    profession.expenses.forEach( expense => {
+      this.newExpense(expense, false)
+    })
+    this.newIncome({name: "Salary", value: profession.salary}, false)
   }
 
   roll = () => {
-    const { player, dispatch } = this.props;
-    player.charity.active && dispatch(charityCounter(-1, player.charity.rollsRemaining));
-    return [ this.randomValue(), this.randomValue(), player.charity.active && this.randomValue() ];
+    const { player: {charity}, dispatch } = this.props;
+    const { randomValue } = this;
+    charity.active && dispatch(charityCounter(-1, charity.rollsRemaining));
+    return [ randomValue(), randomValue(), charity.active && randomValue() ];
   }
 
   randomValue = () => {
@@ -34,17 +55,11 @@ class Home extends Component {
   }
 
   buyCharity = () => {
-    this.props.dispatch(buyCharity(this.props.player.paycheck / 10))
+    this.props.dispatch(buyCharity(this.state.paycheck / 10));
   }
 
   handleChange = (e) => {
     this.setState({ [e.target.name]: e.target.value.replace(/\D/,'') })
-  }
-
-  calculatePaycheck = () => {
-    const { player } = this.props;
-    const { totalIncomes, totalExpenses } = this.state;
-    return player.paycheck + totalIncomes - totalExpenses;
   }
 
   walletColor = () => {
@@ -52,76 +67,85 @@ class Home extends Component {
     return wallet === 0 ? { color: "grey"} : wallet > 0 ? { color: `rgb(0,${Math.round(150 + (wallet * .002))},0)` } : { color: `rgb(${Math.round(150 + (-wallet * .2))},0,0)` }
   }
 
-  newIncome = (name, value) => {
+  newIncome = (params, createMessage = true) => {
     let { incomeCount } = this.state;
-    this.props.dispatch(addIncome(incomeCount++, name, value));
+    const { dispatch } = this.props;
+    params.down && dispatch(mathMoney(-params.down))
+    dispatch(addIncome(incomeCount++, params.name, params.value || params.amount, createMessage));
     this.setState({ incomeCount });
   }
 
-  newExpense = (name, value) => {
+  newExpense = (params, createMessage = true) => {
     let { expenseCount } = this.state;
-    this.props.dispatch(addExpense(expenseCount++, name, value));
+    this.props.dispatch(addExpense(expenseCount++, params.name, params.value || params.amount, createMessage));
     this.setState({ expenseCount });
   }
 
-  newPaycheck = (value) => {
-    console.log(value)
-    this.props.dispatch(updatePaycheck( parseInt(value, 10) ));
-    this.setState({newPaycheck: ""});
+  newSalary = (params) => {
+    const { dispatch, incomes } = this.props;
+    const income = incomes.find((income) => income.name === "Salary");
+    dispatch(updateSalary(income.id, income.name, params.value));
+    this.setState({ newSalary: "" });
   }
 
   render() {
-    const { player, gamelog, wallet, dispatch } = this.props;
-    const { dice, addMoney, spendMoney, totalIncomes, totalExpenses } = this.state;
+    const { player, incomes, expenses, gamelog, wallet, dispatch } = this.props;
+    const { dice, paycheck, moneyInput, totalIncomes, totalExpenses } = this.state;
     return (
       <Container>
         <Header as='h1' textAlign='center'>Cashflow</Header>
-        <Header id="walletAmount" style={this.walletColor()}>${wallet.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Header>
+        <Header id="walletAmount" style={this.walletColor()}>${humanize(wallet)}</Header>
         <div style={{fontSize: 24}}>
-          <Die value={dice[0]}/> &nbsp; <Die value={dice[1]}/> &nbsp; <Die value={dice[2]}/>
-          <hr/>
-          <Button 
-            primary 
-            onClick={() => this.setState({ dice: this.roll() })} 
-            content="Roll"
-          />
-          <Button 
-            floated="right"
-            primary 
-            onClick={this.buyCharity} 
-            content="Buy Charity"
-            disabled={player.charity.active}
-          />
-          <Button 
-            floated="right"
-            primary 
-            onClick={() => { let paycheck = this.calculatePaycheck(); return dispatch(mathMoney(paycheck, `Payday! Received $${paycheck}`)) }}
-            content="Payday"
-          />
-          <Input size="mini" style={{fontSize: 12}} value={spendMoney} name="spendMoney" placeholder="Spend Money" onChange={this.handleChange} /> &nbsp;
-          <Input size="mini" style={{fontSize: 12}} value={addMoney} name="addMoney" placeholder="Add Money" onChange={this.handleChange} />
-          <Button 
-            floated="right"
-            primary 
-            onClick={() => { spendMoney && dispatch(mathMoney(parseInt(-spendMoney, 10), `Spent $${spendMoney}`)); this.setState({spendMoney: ""}) } } 
-            content="Spend Money"
-          />
-          <Button 
-            floated="right"
-            primary 
-            onClick={() => { addMoney && dispatch(mathMoney(parseInt(addMoney, 10), `Added $${addMoney}`)); this.setState({addMoney: ""}) } } 
-            content="Add Money"
-          />
-          <Button.Group basic>
-            <FormModal modalType="Paycheck" handleSubmit={this.newPaycheck} handleChange={this.handleChange} /> &nbsp;
-            <FormModal modalType="Expense" handleSubmit={this.newExpense} hanleChange={this.handleChange} /> &nbsp;
-            <FormModal modalType="Income" handleSubmit={this.newIncome} hanleChange={this.handleChange} />
+          <Die value={dice[0]}/> &nbsp; <Die value={dice[1]}/> &nbsp; <Die value={dice[2]}/><hr/>
+          
+          <Button.Group primary vertical floated="right" style={{margin: 5}}>
+            <Button 
+              primary 
+              onClick={() => this.setState({ dice: this.roll() })} 
+              content="Roll Dice"
+            />
+            <Button 
+              floated="right"
+              primary 
+              onClick={() => dispatch(mathMoney(paycheck, `Payday! Received $${paycheck}`)) }
+              content="Payday"
+            />
+            <Button 
+              floated="right"
+              primary 
+              onClick={this.buyCharity} 
+              content={player.charity.active ? "Charity Active" : "Buy Charity"}
+              disabled={player.charity.active || wallet < ( this.state.paycheck / 10 )}
+            />
+          </Button.Group>
+
+          <Button.Group primary vertical floated="right" style={{margin: 5}}>            
+            <FormModal modalType="Income" handleSubmit={this.newIncome} handleChange={this.handleChange} />
+            <FormModal modalType="Expense" handleSubmit={this.newExpense} handleChange={this.handleChange} />
+            <FormModal modalType="Paycheck" salaryValue={player.profession.salary} handleSubmit={this.newSalary} handleChange={this.handleChange} />
+          </Button.Group>
+
+          <Button.Group primary vertical floated="right" style={{margin: 5}}>
+            <Input size="mini" style={{fontSize: 14.5, marginBottom: -3, position: 'relative', zIndex: 1}} value={moneyInput} name="moneyInput" placeholder="Amount" onChange={this.handleChange} />          
+            <Button 
+              floated="right"
+              primary 
+              onClick={() => { moneyInput && dispatch(mathMoney(parseInt(moneyInput, 10), `Added $${moneyInput}`)); this.setState({moneyInput: ""}) } } 
+              content="Add Money"
+            />
+            <Button 
+              floated="right"
+              primary 
+              onClick={() => { moneyInput && dispatch(mathMoney(parseInt(-moneyInput, 10), `Spent $${moneyInput}`)); this.setState({moneyInput: ""}) } } 
+              content="Spend Money"
+            />
           </Button.Group>
         </div>
+
         <Grid style={{ marginLeft: 14 }}>
           <Grid.Row columns={2}>
             <Grid.Column textAlign="center" style={{position: 'fixed', bottom: 0, left: 0, margin: 0, marginBottom: -14}}><h4>Gamelog</h4><Gamelog gamelog={ gamelog } /></Grid.Column>
-            <Grid.Column textAlign="center" style={{position: 'fixed', bottom: 0, right: 0, margin: 0, marginBottom: -14}}><h4>Player Stats</h4><Stats stats={ this.props } income={ totalIncomes } expenses={totalExpenses} /></Grid.Column>
+            <Grid.Column textAlign="center" style={{position: 'fixed', bottom: 0, right: 0, margin: 0, marginBottom: -14}}><h4>Player Stats</h4><Stats stats={ this.props } totalIncome={totalIncomes} totalExpenses={totalExpenses} incomes={ incomes } expenses={expenses} /></Grid.Column>
           </Grid.Row>
         </Grid>
       </Container>
