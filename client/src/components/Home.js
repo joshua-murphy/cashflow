@@ -4,11 +4,13 @@ import Die from './Die';
 import Gamelog from './Gamelog';
 import Stats from './Stats';
 import FormModal from './FormModal';
+import StockModal from './StockModal';
 import { humanize } from './functions';
-import { buyCharity, charityCounter, updateSalary } from '../actions/player';
+import { buyCharity, charityCounter, newBaby, updateSalary } from '../actions/player';
 import { mathMoney } from '../actions/wallet';
 import { addExpense } from '../actions/expenses';
 import { addIncome } from '../actions/incomes';
+import { addStock, removeStock } from '../actions/stocks';
 import { setProfession } from '../actions/profession';
 import { addMessage } from '../actions/gamelog';
 import { connect } from 'react-redux';
@@ -16,7 +18,7 @@ import { Button, Container, Grid, Header, Input } from 'semantic-ui-react';
 
 class Home extends Component {
 
-  state = { dice: [], paycheck: 0, moneyInput: "", incomeCount: 0, expenseCount: 0, totalIncomes: 0, totalExpenses: 0 }
+  state = { dice: [], paycheck: 0, moneyInput: "", incomeCount: 0, expenseCount: 0, stockCount: 0, totalIncomes: 0, totalExpenses: 0 }
 
     componentDidMount() {
       axios.get('/api/professions/random')
@@ -55,7 +57,12 @@ class Home extends Component {
   }
 
   buyCharity = () => {
-    this.props.dispatch(buyCharity(this.state.paycheck / 10));
+    this.props.dispatch(buyCharity(this.state.totalIncomes / 10));
+  }
+
+  haveBaby = () => {
+    const { player, dispatch } = this.props;
+    dispatch(newBaby(player.profession.childCost, player.children + 1));
   }
 
   handleChange = (e) => {
@@ -88,15 +95,27 @@ class Home extends Component {
     this.setState({ newSalary: "" });
   }
 
+  buyStock = (params) => {
+    let { stockCount } = this.state;
+    this.props.dispatch(addStock(stockCount++, params.symbol, params.price, params.count))
+    this.setState({ stockCount })
+  }
+
+  sellStock = (params) => {
+    let { stockCount } = this.state;
+    this.props.dispatch(removeStock(stockCount++, params.symbol, params.price, params.count))
+    this.setState({ stockCount })
+  }
+
   render() {
-    const { player, incomes, expenses, gamelog, wallet, dispatch } = this.props;
+    const { player, incomes, expenses, gamelog, wallet, dispatch, stocks } = this.props;
     const { dice, paycheck, moneyInput, totalIncomes, totalExpenses } = this.state;
     return (
       <Container>
         <Header as='h1' textAlign='center'>Cashflow</Header>
         <Header id="walletAmount" style={this.walletColor()}>${humanize(wallet)}</Header>
         <div style={{fontSize: 24}}>
-          <Die value={dice[0]}/> &nbsp; <Die value={dice[1]}/> &nbsp; <Die value={dice[2]}/><hr/>
+    <Die value={dice[0]}/> &nbsp; <Die value={dice[1]}/> &nbsp; { dice[2] && <Die value={dice[2]}/> } { dice[2] && <span>&nbsp;</span> } {dice.length > 0 && `(${dice.reduce( (total, num) => total + num, 0)})` }<hr/>
           
           <Button.Group primary vertical floated="right" style={{margin: 5}}>
             <Button 
@@ -115,7 +134,14 @@ class Home extends Component {
               primary 
               onClick={this.buyCharity} 
               content={player.charity.active ? "Charity Active" : "Buy Charity"}
-              disabled={player.charity.active || wallet < ( this.state.paycheck / 10 )}
+              disabled={player.charity.active || wallet < ( this.state.totalIncomes / 10 )}
+            />
+            <Button 
+              floated="right"
+              primary 
+              onClick={this.haveBaby} 
+              content="Have Baby"
+              disabled={player.children === 3}
             />
           </Button.Group>
 
@@ -140,6 +166,11 @@ class Home extends Component {
               content="Spend Money"
             />
           </Button.Group>
+          
+          <Button.Group primary vertical floated="right" style={{margin: 5}}>            
+            <StockModal modalType="Buy" stocks={stocks} handleSubmit={this.buyStock} handleChange={this.handleChange} />
+            <StockModal modalType="Sell" stocks={stocks} handleSubmit={this.sellStock} handleChange={this.handleChange} />
+          </Button.Group>
         </div>
 
         <Grid style={{ marginLeft: 14 }}>
@@ -159,6 +190,7 @@ const mapStateToProps = (state) => {
     wallet: state.wallet,
     incomes: state.incomes,
     expenses: state.expenses,
+    stocks: state.stocks,
     gamelog: state.gamelog,
   }
 }

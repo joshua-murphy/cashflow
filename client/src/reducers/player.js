@@ -4,6 +4,8 @@ const player = (state = {}, action) => {
       return {...state, profession: action.profession}
     case 'BUY_CHARITY':
       return {...state, charity: { active: true, rollsRemaining: 3 }};
+    case 'ADD_CHILD':
+      return {...state, children: action.count};
     case 'CHARITY_COUNTER':
       let rolls = state.charity.rollsRemaining;
       const newTotal = rolls + action.value

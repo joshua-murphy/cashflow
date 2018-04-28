@@ -12,7 +12,7 @@ const enhancers = compose(
 );
 
 const initialState = {
-  player: { charity: { active: false }, profession: {} },
+  player: { charity: { active: false }, profession: {}, children: 0 },
   wallet: 0
 }
 

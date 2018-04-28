@@ -1,12 +1,21 @@
+import { humanize } from '../components/functions';
 import { addMessage } from './gamelog';
-import { editIncome } from './incomes';
+import { updateIncome } from './incomes';
 import { mathMoney } from './wallet';
 
 export const buyCharity = (amount) => {
   return dispatch => {
     dispatch(mathMoney(-amount));
     dispatch({ type: 'BUY_CHARITY' });
-    dispatch(addMessage(`Charity bought for $${amount}, rolls remaining: 3`));
+    dispatch(addMessage(`Charity bought for $${humanize(amount)}, rolls remaining: 3`));
+  };
+};
+
+export const newBaby = (amount, count = 0) => {
+  return dispatch => {
+    dispatch(mathMoney(-amount));
+    dispatch({ type: 'ADD_CHILD', count });
+    dispatch(addMessage(`Baby #${count}, congratulations! Cost $${humanize(amount)}`));
   };
 };
 
@@ -19,8 +28,8 @@ export const charityCounter = (value, current) => {
 
 export const updateSalary = (id, name, value) => {
   return dispatch => {
-    dispatch(editIncome(id, name, value, false));
+    dispatch(updateIncome(id, name, value, false));
     dispatch({ type: "UPDATE_SALARY", value });
-    dispatch(addMessage(`Salary updated to: $${value}`));
+    dispatch(addMessage(`Salary updated to: $${humanize(value)}`));
   };
 };
