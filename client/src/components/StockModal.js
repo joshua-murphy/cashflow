@@ -1,22 +1,32 @@
 import React from 'react';
+import { humanize } from './functions';
 import { Button, Form, Header, Modal, Select } from 'semantic-ui-react';
 
 class StockModal extends React.Component {
 
-  state = { options: [], playerStocks: [], symbol: '', price: '', count: '', modalOpen: false };
+  state = { options: [], current: null, symbol: '', price: '', count: '', modalOpen: false };
 
   handleChange = (e, { value }) => {
     this.setState({ price: value });
   }
 
   changeOptions = (e, { value }) => {
+    const { stocks, modalType } = this.props;
     const selected = symbols.find( (s) => s.value === value);
-    this.setState({ symbol: value, options: selected.prices });
+    const id = parseInt(e.target.id, 10)
+    const current = modalType === 'Sell' ? stocks.find( (s) => s.id === id ) : null
+    this.setState({ current, symbol: value, options: selected.prices });
   }
 
   handleNumberChange = (e, { value }) => {
-    if(value) 
-      this.setState({ count: parseInt(e.target.value.replace(/\D/,''), 10) });
+    const { current } = this.state
+    if(value) {
+      let count = e.target.value.replace(/\D/,'');
+      if(this.props.modalType === 'Buy')
+        count && this.setState({ count: parseInt(count, 10) });
+      else
+        count && current && count <= current.count && this.setState({ count: parseInt(count, 10) });
+    }
     else
       this.setState({ count: '' });
   }
@@ -30,15 +40,16 @@ class StockModal extends React.Component {
     const { symbol, price, count } = this.state;    
     const params = {symbol, price, count};
     this.props.handleSubmit(params);
-    this.setState({ symbol: '', price: '', count: '', options: [], playerStocks: [] });    
+    this.setState({ symbol: '', price: '', count: '', options: [] });    
     this.toggleModal();
   }
 
   getOptions = () => {
-    if(this.props.modalType === "Buy")
+    const { modalType, stocks } = this.props;    
+    if(modalType === "Buy")
       return symbols;
     else
-      return this.props.stocks.map(stock => { return { text: stock.name, value: stock.name, id: stock.id } });
+      return stocks.map(stock => { return { text: `${stock.name} - ${stock.count}`, value: stock.name, amount: stock.count, id: stock.id } });
   }
 
   dynamicString = (str1, str2) => {
@@ -49,8 +60,8 @@ class StockModal extends React.Component {
   }
 
   render() {
-    const { options, symbol, price, count, modalOpen } = this.state;
-    const { modalType } = this.props;
+    const { options, symbol, price, count, modalOpen, current } = this.state;
+    const { modalType, stocks } = this.props;
     const { dynamicString } = this;
     var dimmer = document.getElementsByClassName('ui page modals dimmer transition visible active')[0]
     dimmer && dimmer.classList.remove('transition')
@@ -58,7 +69,7 @@ class StockModal extends React.Component {
       <Modal
         open={ modalOpen }
         onClose={ this.toggleModal }
-        trigger={<Button onClick={this.toggleModal} content={`${modalType} Stock`} />}
+        trigger={<Button onClick={this.toggleModal} content={`${modalType} Stock`} disabled={modalType === 'Sell' && stocks.length === 0} />}
       >
         <Modal.Content>
           <Header as="h1" textAlign="center" content={`${modalType} Stock`} /><br/>
@@ -68,8 +79,9 @@ class StockModal extends React.Component {
                 control={Select}
                 name="symbol"
                 label='Stock Symbol'
+                value={symbol}
                 placeholder="Please Select"
-                options={this.getOptions()}
+                options={this.getOptions() }
                 onChange={this.changeOptions}
                 required
               />
@@ -77,6 +89,7 @@ class StockModal extends React.Component {
                 control={Select}
                 name='price'
                 label={dynamicString('Buy Price', 'Sale Price')}
+                value={price}
                 placeholder="Please Select"
                 options={options}
                 onChange={this.handleChange}
@@ -86,7 +99,8 @@ class StockModal extends React.Component {
               <Form.Input
                 name='count'
                 label="Stock Count"
-                placeholder="0"
+                value={count}
+                placeholder={modalType === 'Sell' && current ? `Up to ${current.count}` : ''}
                 onChange={this.handleNumberChange}
                 required
               />
@@ -94,8 +108,8 @@ class StockModal extends React.Component {
             <Button
               primary
               floated="right"
-              content={dynamicString("Buy Stock", "Sell Stock")}
-              disabled={symbol === '' || price === '' || count === ''}
+              content={dynamicString((count && symbol && price && count > 0 ? `Buy Stock for $${humanize(price * count)}` : "Buy Stock"), (count && symbol && price && count > 0 ? `Sell Stock for $${humanize(price * count)}` : "Sell Stock"))}
+              disabled={symbol === '' || price === '' || count === '' || count === 0}
             /><br/><br/>
           </Form>
         </Modal.Content>
@@ -109,7 +123,8 @@ const standardPrices = [
   { text: 5, value: 5 }, 
   { text: 10, value: 10 }, 
   { text: 20, value: 20 }, 
-  { text: 30, value: 30 }, 
+  { text: 30, value: 30 },
+  { text: 40, value: 40 },
   { text: 50, value: 50 }
 ]
 

@@ -61,8 +61,10 @@ class Home extends Component {
   }
 
   haveBaby = () => {
+    let { incomeCount } = this.state;
     const { player, dispatch } = this.props;
-    dispatch(newBaby(player.profession.childCost, player.children + 1));
+    dispatch(newBaby(incomeCount++, player.profession.childCost, player.children + 1));
+    this.setState({ incomeCount });
   }
 
   handleChange = (e) => {
@@ -108,8 +110,8 @@ class Home extends Component {
   }
 
   render() {
-    const { player, incomes, expenses, gamelog, wallet, dispatch, stocks } = this.props;
     const { dice, paycheck, moneyInput, totalIncomes, totalExpenses } = this.state;
+    const { player, incomes, expenses, gamelog, wallet, dispatch, stocks } = this.props;
     return (
       <Container>
         <Header as='h1' textAlign='center'>Cashflow</Header>
@@ -176,7 +178,7 @@ class Home extends Component {
         <Grid style={{ marginLeft: 14 }}>
           <Grid.Row columns={2}>
             <Grid.Column textAlign="center" style={{position: 'fixed', bottom: 0, left: 0, margin: 0, marginBottom: -14}}><h4>Gamelog</h4><Gamelog gamelog={ gamelog } /></Grid.Column>
-            <Grid.Column textAlign="center" style={{position: 'fixed', bottom: 0, right: 0, margin: 0, marginBottom: -14}}><h4>Player Stats</h4><Stats stats={ this.props } totalIncome={totalIncomes} totalExpenses={totalExpenses} incomes={ incomes } expenses={expenses} /></Grid.Column>
+            <Grid.Column textAlign="center" style={{position: 'fixed', bottom: 0, right: 0, margin: 0, marginBottom: -14}}><h4>Player Stats</h4><Stats stats={ this.props } totalIncome={totalIncomes} totalExpenses={totalExpenses} incomes={ incomes } expenses={expenses} dispatch={dispatch} /></Grid.Column>
           </Grid.Row>
         </Grid>
       </Container>

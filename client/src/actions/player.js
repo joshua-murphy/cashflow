@@ -2,6 +2,7 @@ import { humanize } from '../components/functions';
 import { addMessage } from './gamelog';
 import { updateIncome } from './incomes';
 import { mathMoney } from './wallet';
+import { addExpense } from './expenses';
 
 export const buyCharity = (amount) => {
   return dispatch => {
@@ -11,11 +12,11 @@ export const buyCharity = (amount) => {
   };
 };
 
-export const newBaby = (amount, count = 0) => {
+export const newBaby = (id, amount, count = 0) => {
   return dispatch => {
-    dispatch(mathMoney(-amount));
+    dispatch(addExpense(id, `Baby #${count}`, amount, false))
     dispatch({ type: 'ADD_CHILD', count });
-    dispatch(addMessage(`Baby #${count}, congratulations! Cost $${humanize(amount)}`));
+    dispatch(addMessage(`Baby #${count}, congratulations! Cost $${humanize(amount)} / month`));
   };
 };
 

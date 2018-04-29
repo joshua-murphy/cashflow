@@ -8,9 +8,9 @@ export const addExpense = (id, name, value, createMessage) => {
   }
 }
 
-export const updateIncome = (id, name, value, createMessage) => {
+export const updateExpense = ({id, name, value}) => {
   return dispatch => {
     dispatch({type: "UPDATE_EXPENSE", id, value})
-    createMessage && dispatch(addMessage(`${name} income updated to $${humanize(value)} / month`))
+    dispatch(addMessage(`${name} expense updated to $${humanize(value)} / month`))
   }
 }

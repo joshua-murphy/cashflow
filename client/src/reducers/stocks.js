@@ -1,8 +1,8 @@
 const stocks = (state = [], action) => {
-  const { id, name, value } = action;
+  const { id, name, count } = action;
   switch (action.type) {
     case 'ADD_STOCK': 
-      return [ ...state, { id, name, value } ];
+      return [ ...state, { id, name, count } ];
     // case 'REMOVE_INCOME':
     //   return [];
     default:

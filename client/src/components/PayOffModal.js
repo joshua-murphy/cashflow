@@ -1,4 +1,6 @@
 import React from 'react';
+import { updateIncome } from '../actions/incomes';
+import { updateExpense } from '../actions/expenses';
 import { Button, Form, Header, Modal } from 'semantic-ui-react';
 
 class PayOffModal extends React.Component {
@@ -28,8 +30,12 @@ class PayOffModal extends React.Component {
 
   formSubmit = () => {
     const { name, value } = this.state;    
-    const params = {name, value: parseInt(value, 10)};
-    this.props.handleSubmit(params);
+    const { item, modalType, dispatch } = this.props;
+    const params = {id: item.id, name, value: parseInt(value, 10)};
+    if( modalType === "Income")
+      dispatch(updateIncome(params))
+    else
+      dispatch(updateExpense(params))
     this.toggleModal();
   }
 
