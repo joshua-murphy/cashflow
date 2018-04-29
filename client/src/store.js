@@ -13,7 +13,13 @@ const enhancers = compose(
 
 const initialState = {
   player: { charity: { active: false }, profession: {}, children: 0 },
-  wallet: 0
+  wallet: 0,
+  stocks: [
+    { name: 'GRO4US', count: 0 },
+    { name: 'MYT4U', count: 0 },
+    { name: 'OK4U', count: 0 },
+    { name: 'ON2U', count: 0 }
+  ]
 }
 
 const store = createStore(rootReducer, initialState, enhancers);

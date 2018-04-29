@@ -10,7 +10,7 @@ import { buyCharity, charityCounter, newBaby, updateSalary } from '../actions/pl
 import { mathMoney } from '../actions/wallet';
 import { addExpense } from '../actions/expenses';
 import { addIncome } from '../actions/incomes';
-import { addStock, removeStock } from '../actions/stocks';
+import { addStock, removeStock, splitStock } from '../actions/stocks';
 import { setProfession } from '../actions/profession';
 import { addMessage } from '../actions/gamelog';
 import { connect } from 'react-redux';
@@ -18,7 +18,7 @@ import { Button, Container, Grid, Header, Input } from 'semantic-ui-react';
 
 class Home extends Component {
 
-  state = { dice: [], paycheck: 0, moneyInput: "", incomeCount: 0, expenseCount: 0, stockCount: 0, totalIncomes: 0, totalExpenses: 0 }
+  state = { dice: [], paycheck: 0, moneyInput: "", incomeCount: 0, expenseCount: 0, totalIncomes: 0, totalExpenses: 0 }
 
     componentDidMount() {
       axios.get('/api/professions/random')
@@ -98,15 +98,15 @@ class Home extends Component {
   }
 
   buyStock = (params) => {
-    let { stockCount } = this.state;
-    this.props.dispatch(addStock(stockCount++, params.symbol, params.price, params.count))
-    this.setState({ stockCount })
+    this.props.dispatch(addStock(params.symbol, params.price, params.count))
   }
 
   sellStock = (params) => {
-    let { stockCount } = this.state;
-    this.props.dispatch(removeStock(stockCount++, params.symbol, params.price, params.count))
-    this.setState({ stockCount })
+    this.props.dispatch(removeStock(params.symbol, params.price, params.count))
+  }
+
+  split = (name, multiplier) => {
+    this.props.dispatch(splitStock(name, multiplier))
   }
 
   render() {
@@ -170,8 +170,9 @@ class Home extends Component {
           </Button.Group>
           
           <Button.Group primary vertical floated="right" style={{margin: 5}}>            
-            <StockModal modalType="Buy" stocks={stocks} handleSubmit={this.buyStock} handleChange={this.handleChange} />
-            <StockModal modalType="Sell" stocks={stocks} handleSubmit={this.sellStock} handleChange={this.handleChange} />
+            <StockModal modalType="Buy" stocks={stocks} wallet={wallet} handleSubmit={this.buyStock} handleChange={this.handleChange} />
+            <StockModal modalType="Sell" stocks={stocks} wallet={wallet} handleSubmit={this.sellStock} handleChange={this.handleChange} />
+            <StockModal modalType="Split" stocks={stocks} wallet={wallet} handleSubmit={this.split} handleChange={this.handleChange} />
           </Button.Group>
         </div>
 

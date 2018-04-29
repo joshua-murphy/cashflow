@@ -29,7 +29,7 @@ class FormModal extends React.Component {
     const params = modalType === 'Paycheck' ? {value} : modalType === 'Expense' ? {name, value} : {name, cost, down, value};
     this.toggleModal();
     handleSubmit(params);
-    this.setState({ name: '', value: '' });
+    this.setState({ name: '', cost: '', down: '', value: '' });
   }
 
   dynamicString = (str1, str2) => {
